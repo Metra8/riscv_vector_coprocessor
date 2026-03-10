@@ -27,9 +27,10 @@ always_comb begin
                 SEW8: begin
                     for (int i = 0; i < 16; i++) begin
                         case (op_i)
-                            OPI_VSLL: result_o.i8[i] = vs2_i.i8[i] << vs1_i.i8[i][2:0];
-                            OPI_VSRL: result_o.i8[i] = vs2_i.i8[i] >> vs1_i.i8[i][2:0];
-                            OPI_VSRA: result_o.i8[i] = signed'(vs2_i.i8[i]) >>> vs1_i.i8[i][2:0];
+                            OPI_VSLL: result_o.i8b[i] = vs2_i.i8b[i] << vs1_i.i8b[i][2:0];
+                            OPI_VSRL: result_o.i8b[i] = vs2_i.i8b[i] >> vs1_i.i8b[i][2:0];
+                            OPI_VSRA: result_o.i8b[i] = signed'(vs2_i.i8b[i]) >>> vs1_i.i8b[i][2:0];
+                            default:  result_o.i8b[i] = '0;
                         endcase
                     end
                 end
@@ -37,9 +38,10 @@ always_comb begin
                 SEW16: begin
                     for (int i = 0; i < 8; i++) begin
                         case (op_i)
-                            OPI_VSLL: result_o.i16[i] = vs2_i.i16[i] << vs1_i.i16[i][3:0];
-                            OPI_VSRL: result_o.i16[i] = vs2_i.i16[i] >> vs1_i.i16[i][3:0];
-                            OPI_VSRA: result_o.i16[i] = signed'(vs2_i.i16[i]) >>> vs1_i.i16[i][3:0];
+                            OPI_VSLL: result_o.i16b[i] = vs2_i.i16b[i] << vs1_i.i16b[i][3:0];
+                            OPI_VSRL: result_o.i16b[i] = vs2_i.i16b[i] >> vs1_i.i16b[i][3:0];
+                            OPI_VSRA: result_o.i16b[i] = signed'(vs2_i.i16b[i]) >>> vs1_i.i16b[i][3:0];
+                            default:  result_o.i16b[i] = '0;
                         endcase
                     end
                 end
@@ -47,9 +49,10 @@ always_comb begin
                 SEW32: begin
                     for (int i = 0; i < 4; i++) begin
                         case (op_i)
-                            OPI_VSLL: result_o.i32[i] = vs2_i.i32[i] << vs1_i.i32[i][4:0];
-                            OPI_VSRL: result_o.i32[i] = vs2_i.i32[i] >> vs1_i.i32[i][4:0];
-                            OPI_VSRA: result_o.i32[i] = signed'(vs2_i.i32[i]) >>> vs1_i.i32[i][4:0];
+                            OPI_VSLL: result_o.i32b[i] = vs2_i.i32b[i] << vs1_i.i32b[i][4:0];
+                            OPI_VSRL: result_o.i32b[i] = vs2_i.i32b[i] >> vs1_i.i32b[i][4:0];
+                            OPI_VSRA: result_o.i32b[i] = signed'(vs2_i.i32b[i]) >>> vs1_i.i32b[i][4:0];
+                            default:  result_o.i32b[i] = '0;
                         endcase
                     end
                 end
@@ -57,12 +60,15 @@ always_comb begin
                 SEW64: begin
                     for (int i = 0; i < 2; i++) begin
                         case (op_i)
-                            OPI_VSLL: result_o.i64[i] = vs2_i.i64[i] << vs1_i.i64[i][5:0];
-                            OPI_VSRL: result_o.i64[i] = vs2_i.i64[i] >> vs1_i.i64[i][5:0];
-                            OPI_VSRA: result_o.i64[i] = signed'(vs2_i.i64[i]) >>> vs1_i.i64[i][5:0];
+                            OPI_VSLL: result_o.i64b[i] = vs2_i.i64b[i] << vs1_i.i64b[i][5:0];
+                            OPI_VSRL: result_o.i64b[i] = vs2_i.i64b[i] >> vs1_i.i64b[i][5:0];
+                            OPI_VSRA: result_o.i64b[i] = signed'(vs2_i.i64b[i]) >>> vs1_i.i64b[i][5:0];
+                            default:  result_o.i64b[i] = '0;
                         endcase
                     end
                 end
+
+                default: result_o = '0;
 
             endcase
         end
