@@ -19,9 +19,9 @@ always_comb begin
         OPI_VXOR:  result_o.i128b = vs1_i.i128b ^ vs2_i.i128b;
 
         // ---- Shifts (dependen del SEW) ----
-        OPI_VSLL,
-        OPI_VSRL,
-        OPI_VSRA: begin
+        OPI_VSLL,           //mult por 2
+        OPI_VSRL,           //div por 2
+        OPI_VSRA: begin     //div por 2 con signo
             case (sew_i)
 
                 SEW8: begin
