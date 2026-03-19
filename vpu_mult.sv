@@ -57,7 +57,8 @@ always_comb begin
             for (int i = 0; i < 16; i++) begin
                 temp_uu_8[i] = vs2_i.i8b[i] * vs1_i.i8b[i];
                 temp_ss_8[i] = signed'(vs2_i.i8b[i]) * signed'(vs1_i.i8b[i]);
-                temp_su_8[i] = signed'(vs2_i.i8b[i]) * vs1_i.i8b[i];
+                // Solo SEW8 necesita extensión explícita
+                temp_su_8[i] = $signed({{8{vs2_i.i8b[i][7]}}, vs2_i.i8b[i]}) * {8'b0, vs1_i.i8b[i]};
 
                 case (op_i)
                     OPM_VMUL:    result_o.i8b[i] = temp_uu_8[i][7:0];
