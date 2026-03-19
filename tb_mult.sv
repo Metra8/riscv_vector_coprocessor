@@ -1,4 +1,3 @@
-// tb_mult.sv
 import vpu_pkg::*;
 
 module tb_mult;
