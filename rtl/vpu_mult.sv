@@ -1,4 +1,3 @@
-// vpu_mult.sv
 import vpu_pkg::*;
 
 module vpu_mult (
@@ -29,7 +28,7 @@ logic [127:0] temp_su_64 [2];
 always_comb begin
     result_o    = '0;
 
-    // Inicializar todos los temporales
+    // Inicializar los temporales
     for (int i = 0; i < 16; i++) begin
         temp_uu_8[i] = '0;
         temp_ss_8[i] = '0;
@@ -58,6 +57,10 @@ always_comb begin
                 temp_uu_8[i] = vs2_i.i8b[i] * vs1_i.i8b[i];
                 temp_ss_8[i] = signed'(vs2_i.i8b[i]) * signed'(vs1_i.i8b[i]);
                 // Solo SEW8 necesita extensión explícita
+                // necesitamos evitar promoción a 32 bits
+
+                // si en una operación mezclo un unsigned, Verilog suele
+                //promocionar ambos como unsigned a 32 bits antes de multiplicar.
                 temp_su_8[i] = $signed({{8{vs2_i.i8b[i][7]}}, vs2_i.i8b[i]}) * {8'b0, vs1_i.i8b[i]};
 
                 case (op_i)
