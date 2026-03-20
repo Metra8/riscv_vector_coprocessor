@@ -1,3 +1,4 @@
+
 import vpu_pkg::*;
 
 module tb_div;
@@ -57,6 +58,11 @@ initial begin
     vs1.i8b = '{16{8'd2}};
     // -10 / 2 = -5 = 0xFB
     check("VDIV SEW8", {16{8'hFB}});
+
+    $display("vs2.i8b[0] = %0d (signed: %0d)", vs2.i8b[0], $signed(vs2.i8b[0]));
+    $display("vs1.i8b[0] = %0d", vs1.i8b[0]);
+    $display("result.i8b[0] = %h (signed: %0d)", result.i8b[0], $signed(result.i8b[0]));
+
 
     // --- VREMU SEW8 ---
     @(posedge clk);
