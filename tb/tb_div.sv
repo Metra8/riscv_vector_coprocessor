@@ -59,9 +59,9 @@ initial begin
     // -10 / 2 = -5 = 0xFB
     check("VDIV SEW8", {16{8'hFB}});
 
-    $display("vs2.i8b[0] = %0d (signed: %0d)", vs2.i8b[0], $signed(vs2.i8b[0]));
-    $display("vs1.i8b[0] = %0d", vs1.i8b[0]);
-    $display("result.i8b[0] = %h (signed: %0d)", result.i8b[0], $signed(result.i8b[0]));
+    //$display("vs2.i8b[0] = %0d (signed: %0d)", vs2.i8b[0], $signed(vs2.i8b[0]));
+    //$display("vs1.i8b[0] = %0d", vs1.i8b[0]);
+    //$display("result.i8b[0] = %h (signed: %0d)", result.i8b[0], $signed(result.i8b[0]));
 
 
     // --- VREMU SEW8 ---
@@ -115,6 +115,12 @@ initial begin
     vs1.i16b = '{8{16'd10}};
     // -100 / 10 = -10 = 0xFFF6
     check("VDIV SEW16", {8{16'hFFF6}});
+
+    //$display("vs2.i16b[0] = %0d (signed: %0d)", vs2.i16b[0], $signed(vs2.i16b[0]));
+    //$display("vs1.i16b[0] = %0d", vs1.i16b[0]);
+    //$display("result.i16b[0] = %h (signed: %0d)", result.i16b[0], $signed(result.i16b[0]));
+    //$display("dut.sew_i = %0d", dut.sew_i);
+    //$display("dut.op_i = %0d", dut.op_i);
 
     // --- VREMU SEW16 ---
     @(posedge clk);
@@ -199,7 +205,7 @@ initial begin
     // --- VDIV SEW64 signed ---
     @(posedge clk);
     sew = SEW64; op = OPM_VDIV;
-    vs2.i64b = '{2{64'hFFFFFFFC00000000}};  // -1000000000 en signed
+    vs2.i64b = '{2{64'hFFFFFFFFC4653600}};  // -1000000000 en signed
     vs1.i64b = '{2{64'd1000}};
     // -1000000000 / 1000 = -1000000 = 0xFFFFFFFFFFF0BDC0
     check("VDIV SEW64", {2{64'hFFFFFFFFFFF0BDC0}});
