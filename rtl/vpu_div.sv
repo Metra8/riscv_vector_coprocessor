@@ -1,4 +1,3 @@
-// vpu_div.sv
 import vpu_pkg::*;
 
 module vpu_div (
