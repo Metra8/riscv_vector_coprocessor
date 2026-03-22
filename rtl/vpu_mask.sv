@@ -15,10 +15,10 @@ always_comb begin
     else begin
         // Con máscara, usamos v0 según el SEW
         case (sew_i)
-            SEW8:  we_o = v0_i.i8b[0];  // 16 bits, un bit por elemento
-            SEW16: we_o = {8'b0,  v0_i.i8b[0][7:0]};  // 8 bits válidos
-            SEW32: we_o = {12'b0, v0_i.i8b[0][3:0]};  // 4 bits válidos
-            SEW64: we_o = {14'b0, v0_i.i8b[0][1:0]};  // 2 bits válidos
+            SEW8:  we_o = v0_i.i16b[0];            // 16 bits de máscara
+            SEW16: we_o = {8'b0,  v0_i.i16b[0][7:0]};  // 8 bits válidos
+            SEW32: we_o = {12'b0, v0_i.i16b[0][3:0]};  // 4 bits válidos
+            SEW64: we_o = {14'b0, v0_i.i16b[0][1:0]};  // 2 bits válidos
             default: we_o = 16'hFFFF;
         endcase
     end
