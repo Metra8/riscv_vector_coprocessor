@@ -70,7 +70,7 @@ end
 endmodule
 
 /*
-Los dos módulos están diseñados para trabajar juntos: `vpu_mask` genera `elem_we_i` y `vpu_regfile`
-lo usa para decidir qué elementos escribir. En `vpu_top.sv` la conexión será simplemente:
+`vpu_mask` genera `elem_we_i` y `vpu_regfile`
+lo usa para decidir qué elementos escribir. En `vpu_top.sv` la conexión es simplemente:
 vpu_mask  → elem_we_i → vpu_regfile
 */
