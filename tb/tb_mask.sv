@@ -121,6 +121,12 @@ initial begin
     v0.i16b[0] = 16'h0000;
     check("vm=0 SEW64 ninguno",     16'h0000);
 
+    //test ruido
+    @(posedge clk);
+    vm = 0; sew = SEW64;
+    v0.i128b = 128'hFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFC; // Todo 1s menos los 2 bits bajos (00)
+    check("vm=0 SEW64 con v0 ruidoso", 16'h0000); // Debería dar 0 porque solo importan los 2 bits bajos
+
     $display("---- Tests completados ----");
     $finish;
 end
