@@ -26,7 +26,7 @@ module vpu_csr (
 // LMUL fijo a 1 (3'b000) hasta que se implemente
 localparam logic [2:0] VLMUL_FIXED = 3'b000;
 
-// Registros CSR
+// Registros CSR --> control and status register
 logic [31:0] vstart;    // índice de inicio
 logic [31:0] vxsat;
 logic [31:0] vxrm;      // vector fixed-point rounding mode
