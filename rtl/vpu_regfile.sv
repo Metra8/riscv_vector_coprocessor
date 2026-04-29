@@ -4,7 +4,7 @@ module vpu_regfile (
     input  logic        clk_i,
     input  logic        rst_i,
 
-    // Puerto de lectura 1 (vs1)
+    // Puerto de lectura 1 (vs1 / vector source)    register source
     input  logic [4:0]  rs1_addr_i,
     output vector_t     rs1_data_o,
 
@@ -15,7 +15,7 @@ module vpu_regfile (
     // Puerto de lectura 3 (v0, para máscara)
     output vector_t     v0_data_o,
 
-    // Puerto de escritura
+    // Puerto de escritura                         register destination
     input  logic [4:0]  rd_addr_i,
     input  vector_t     rd_data_i,
     input  logic        we_i,        // write enable global
