@@ -47,6 +47,11 @@ logic [11:0]     csr_addr;
 logic [31:0]     csr_data;
 logic [11:0]     csr_raddr;
 logic [31:0]     csr_rdata;
+logic            vl_we;
+logic [31:0]     vl_data;
+
+assign vl_we  = valid_i & csr_we;
+assign vl_data = (rs1_data_i > vlmax) ? vlmax : rs1_data_i;
 
 // ---- Operando vs1 efectivo (VV, VX o VI) ----
 vector_t vs1_eff;
@@ -96,9 +101,17 @@ assign reg_we = valid_i & ~illegal_o & ~csr_we;
 // vl = min(AVL, vlmax)
 always_comb begin
     csr_we_int = valid_i & csr_we;
-    csr_addr   = 12'hC21; // vtype por defecto
-    csr_data = {20'b0, instr_i[31:20]};
     csr_raddr  = 12'hC20;
+
+    if (csr_we) begin
+        // Primero escribir vtype
+        csr_addr = 12'hC21;
+        csr_data = {20'b0, instr_i[31:20]};
+    end
+    else begin
+        csr_addr = 12'hC21;
+        csr_data = '0;
+    end
 end
 
 // ---- Instancias ----
@@ -140,20 +153,22 @@ vpu_regfile regfile (
 );
 
 vpu_csr csr (
-    .clk_i    (clk_i),
-    .rst_i    (rst_i),
-    .we_i     (csr_we_int),
-    .addr_i   (csr_addr),
-    .data_i   (csr_data),
-    .sew_o    (sew),
-    .vl_o     (vl),
-    .vstart_o (vstart),
-    .vxsat_o  (vxsat),
-    .vlmul_o  (vlmul),
-    .vlmax_o  (vlmax),
-    .vill_o   (vill),
-    .raddr_i  (csr_raddr),
-    .rdata_o  (csr_rdata)
+    .clk_i     (clk_i),
+    .rst_i     (rst_i),
+    .we_i      (csr_we_int),
+    .addr_i    (csr_addr),
+    .data_i    (csr_data),
+    .sew_o     (sew),
+    .vl_o      (vl),
+    .vstart_o  (vstart),
+    .vxsat_o   (vxsat),
+    .vlmul_o   (vlmul),
+    .vlmax_o   (vlmax),
+    .vill_o    (vill),
+    .raddr_i   (csr_raddr),
+    .rdata_o   (csr_rdata),
+    .vl_we_i   (vl_we),
+    .vl_data_i (vl_data)
 );
 
 vpu_addsub addsub (
