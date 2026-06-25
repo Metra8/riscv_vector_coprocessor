@@ -1,26 +1,29 @@
 import vpu_pkg::*;
 
 module vpu_csr (
-    input  logic        clk_i,
-    input  logic        rst_i,
+    input   logic        clk_i,
+    input   logic        rst_i,  
 
     // Interfaz de escritura
-    input  logic        we_i,
-    input  logic [11:0] addr_i,
-    input  logic [31:0] data_i,
+    input   logic        we_i,
+    input   logic [11:0] addr_i,
+    input   logic [31:0] data_i,
 
     // Salidas directas de los CSRs más usados
-    output sew_t        sew_o,
-    output logic [31:0] vl_o,
-    output logic [31:0] vstart_o,
-    output logic        vxsat_o,    // vector fixed-point saturation
-    output logic [2:0]  vlmul_o,
-    output logic [31:0] vlmax_o,
-    output logic        vill_o,     // vector invalid layout
+    output  sew_t        sew_o,
+    output  logic [31:0] vl_o,
+    output  logic [31:0] vstart_o,
+    output  logic        vxsat_o,    // vector fixed-point saturation
+    output  logic [2:0]  vlmul_o,
+    output  logic [31:0] vlmax_o,
+    output  logic        vill_o,     // vector invalid layout
 
     // Lectura genérica
-    input  logic [11:0] raddr_i,
-    output logic [31:0] rdata_o
+    input   logic [11:0] raddr_i,
+    output  logic [31:0] rdata_o,
+    // Longitud vector
+    input   logic        vl_we_i,
+    input   logic [31:0] vl_data_i
 );
 
 // LMUL fijo a 1 (3'b000) hasta que se implemente
@@ -69,6 +72,7 @@ assign vstart_o = vstart;
 assign vxsat_o  = vxsat[0];
 
 // Escritura síncrona
+// Escritura síncrona
 always_ff @(posedge clk_i) begin
     if (rst_i) begin
         vstart <= '0;
@@ -78,19 +82,22 @@ always_ff @(posedge clk_i) begin
         vl     <= '0;
         vtype  <= '0;
     end
-    else if (we_i) begin
-        case (addr_i)
-            12'h008: vstart <= data_i;
-            12'h009: vxsat  <= data_i;
-            12'h00A: vxrm   <= data_i;
-            12'h00F: vcsr   <= data_i;
-            12'hC20: vl     <= data_i;
-            12'hC21: begin
-                // Forzar vlmul a 000 y actualizar vill en bit 31
-                vtype <= {(data_i[5:3] > 3'b011), data_i[30:6], data_i[5:3], VLMUL_FIXED};
-            end
-            default: ;
-        endcase
+    else begin
+        if (we_i) begin
+            case (addr_i)
+                12'h008: vstart <= data_i;
+                12'h009: vxsat  <= data_i;
+                12'h00A: vxrm   <= data_i;
+                12'h00F: vcsr   <= data_i;
+                12'hC21: begin
+                    vtype <= {(data_i[5:3] > 3'b011), data_i[30:6], data_i[5:3], VLMUL_FIXED};
+                end
+                default: ;
+            endcase
+        end
+        // Escritura de vl separada con min(AVL, vlmax)
+        if (vl_we_i)
+            vl <= vl_data_i;
     end
 end
 
