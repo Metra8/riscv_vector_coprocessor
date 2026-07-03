@@ -9,8 +9,7 @@ module decoder (
 
     // Control regfile
     output logic        rd_we_o,
-    output wb_src_t     wb_src_o,
-
+    output wb_src_t     wb_src_o,     // write back source output
     // Control LSU
     output logic        mem_we_o,
     output mem_width_t  mem_width_o,
@@ -18,7 +17,7 @@ module decoder (
 
     // Control saltos
     output branch_t     branch_o,
-    output logic        jump_o,       // JAL/JALR
+    output logic        jump_o,       // JAL/JALR (jump and link / "" register)
 
     // Inmediato extendido a 32 bits
     output logic [31:0] imm_o,
@@ -50,16 +49,18 @@ assign rd_addr_o  = instr_i[11:7];
 // ---- Generación de inmediatos ----
 logic [31:0] imm_i, imm_s, imm_b, imm_u, imm_j;
 
-// Tipo I
+//utilizamos la extensión de signo para rellenar los bits
+
+// Tipo I (inmediate)
 assign imm_i = {{20{instr_i[31]}}, instr_i[31:20]};
-// Tipo S
+// Tipo S (store)
 assign imm_s = {{20{instr_i[31]}}, instr_i[31:25], instr_i[11:7]};
-// Tipo B
+// Tipo B (branch)
 assign imm_b = {{19{instr_i[31]}}, instr_i[31], instr_i[7],
                 instr_i[30:25], instr_i[11:8], 1'b0};
-// Tipo U
+// Tipo U (upper)
 assign imm_u = {instr_i[31:12], 12'b0};
-// Tipo J
+// Tipo J (jump)
 assign imm_j = {{11{instr_i[31]}}, instr_i[31], instr_i[19:12],
                 instr_i[20], instr_i[30:21], 1'b0};
 
@@ -104,7 +105,7 @@ always_comb begin
             alu_op_o  = ALU_ADD;
             alu_src_o = SRC_PC;
             rd_we_o   = 1;
-            wb_src_o  = WB_PC4;
+            wb_src_o  = WB_PC4; // PC + 4
             jump_o    = 1;
             imm_o     = imm_j;
         end
