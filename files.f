@@ -1,0 +1,11 @@
+rtl/vpu_pkg.sv
+rtl/vpu_decoder.sv
+rtl/vpu_regfile.sv
+rtl/vpu_csr.sv
+rtl/vpu_addsub.sv
+rtl/vpu_logic.sv
+rtl/vpu_mult.sv
+rtl/vpu_div.sv
+rtl/vpu_compare.sv
+rtl/vpu_mask.sv
+rtl/vpu_top.sv
