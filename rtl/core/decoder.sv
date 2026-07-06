@@ -51,11 +51,18 @@ assign rd_addr_o  = instr_i[11:7];
 // ---- Generación de inmediatos ----
 logic [31:0] imm_i, imm_s, imm_b, imm_u, imm_j;
 
+//utilizamos la extensión de signo para rellenar los bits
+
+// Tipo I (inmediate)
 assign imm_i = {{20{instr_i[31]}}, instr_i[31:20]};
+// Tipo S (store)
 assign imm_s = {{20{instr_i[31]}}, instr_i[31:25], instr_i[11:7]};
+// Tipo B (branch)
 assign imm_b = {{19{instr_i[31]}}, instr_i[31], instr_i[7],
                 instr_i[30:25], instr_i[11:8], 1'b0};
+// Tipo U (upper)
 assign imm_u = {instr_i[31:12], 12'b0};
+// Tipo J (jump)
 assign imm_j = {{11{instr_i[31]}}, instr_i[31], instr_i[19:12],
                 instr_i[20], instr_i[30:21], 1'b0};
 
@@ -136,11 +143,11 @@ always_comb begin
             wb_src_o  = WB_MEM;
             imm_o     = imm_i;
             case (funct3)
-                3'b000: begin mem_width_o = MEM_BYTE; mem_sign_o = 1; end
-                3'b001: begin mem_width_o = MEM_HALF; mem_sign_o = 1; end
-                3'b010: begin mem_width_o = MEM_WORD; mem_sign_o = 1; end
-                3'b100: begin mem_width_o = MEM_BYTE; mem_sign_o = 0; end
-                3'b101: begin mem_width_o = MEM_HALF; mem_sign_o = 0; end
+                3'b000: begin mem_width_o = MEM_BYTE; mem_sign_o = 1; end // LB
+                3'b001: begin mem_width_o = MEM_HALF; mem_sign_o = 1; end // LH
+                3'b010: begin mem_width_o = MEM_WORD; mem_sign_o = 1; end // LW
+                3'b100: begin mem_width_o = MEM_BYTE; mem_sign_o = 0; end // LBU
+                3'b101: begin mem_width_o = MEM_HALF; mem_sign_o = 0; end // LHU
                 default: illegal_o = 1;
             endcase
         end
