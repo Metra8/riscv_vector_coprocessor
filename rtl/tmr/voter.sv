@@ -1,3 +1,6 @@
+// OBSOLETE
+// module already implemented on vpu_tmr.sv
+
 module voter #(
     parameter WIDTH = 128
 )(
