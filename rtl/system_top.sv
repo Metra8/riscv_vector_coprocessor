@@ -1,9 +1,11 @@
+// system_top.sv
 import core_pkg::*;
 import vpu_pkg::*;
 
 module system_top (
     input  logic clk_i,
-    input  logic rst_i
+    input  logic rst_i,
+    output logic tmr_error_o
 );
 
 logic [31:0] imem_addr, imem_data;
@@ -44,15 +46,16 @@ dmem #(.DEPTH(1024)) dmem_inst (
     .rdata_o (dmem_rdata)
 );
 
-vpu_top vpu (
-    .clk_i      (clk_i),
-    .rst_i      (rst_i),
-    .instr_i    (vpu_instr),
-    .rs1_data_i (vpu_rs1),
-    .valid_i    (vpu_valid),
-    .done_o     (vpu_done),
-    .illegal_o  (vpu_illegal),
-    .stall_o    ()
+vpu_top #(.TMR_ENABLE(0)) vpu (  // ← sin TMR por defecto
+    .clk_i       (clk_i),
+    .rst_i       (rst_i),
+    .instr_i     (vpu_instr),
+    .rs1_data_i  (vpu_rs1),
+    .valid_i     (vpu_valid),
+    .done_o      (vpu_done),
+    .illegal_o   (vpu_illegal),
+    .stall_o     (),              // ← coma añadida
+    .tmr_error_o (tmr_error_o)
 );
 
 endmodule

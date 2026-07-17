@@ -1,17 +1,20 @@
 // vpu_top.sv
 import vpu_pkg::*;
 
-module vpu_top (
+module vpu_top #(
+    parameter TMR_ENABLE = 0  // 0 = sin TMR, 1 = con TMR (3 carriles)
+)(
     input  logic        clk_i,
     input  logic        rst_i,
 
     // Interfaz con el core
     input  logic [31:0] instr_i,
-    input  logic [31:0] rs1_data_i,  // registro escalar para VX
+    input  logic [31:0] rs1_data_i,
     input  logic        valid_i,
     output logic        done_o,
     output logic        illegal_o,
-    output logic        stall_o
+    output logic        stall_o,
+    output logic        tmr_error_o  // 0 siempre si TMR_ENABLE=0
 );
 
 // ---- Señales del decoder ----
@@ -30,13 +33,6 @@ vector_t         rd_data;
 logic            reg_we;
 logic [15:0]     elem_we;
 
-// ---- Señales de las unidades funcionales ----
-vector_t         addsub_result;
-vector_t         logic_result;
-vector_t         mult_result;
-vector_t         div_result;
-logic [15:0]     compare_result;
-
 // ---- Señales del CSR ----
 sew_t            sew;
 logic [31:0]     vl, vstart, vlmax;
@@ -50,15 +46,14 @@ logic [31:0]     csr_rdata;
 logic            vl_we;
 logic [31:0]     vl_data;
 
-assign vl_we  = valid_i & csr_we;
+assign vl_we   = valid_i & csr_we;
 assign vl_data = (rs1_data_i > vlmax) ? vlmax : rs1_data_i;
 
 // ---- Operando vs1 efectivo (VV, VX o VI) ----
 vector_t vs1_eff;
 
-// Replicar rs1 o inmediato en todos los elementos según SEW
 always_comb begin
-    vs1_eff = vs1_data; // por defecto VV
+    vs1_eff = vs1_data;
     if (src_vx) begin
         case (sew)
             SEW8:  for (int i = 0; i < 16; i++) vs1_eff.i8b[i]  = rs1_data_i[7:0];
@@ -70,7 +65,7 @@ always_comb begin
     end
     else if (src_vi) begin
         case (sew)
-            SEW8:  for (int i = 0; i < 16; i++) vs1_eff.i8b[i]  = {{3{imm[4]}}, imm};
+            SEW8:  for (int i = 0; i < 16; i++) vs1_eff.i8b[i]  = {{3{imm[4]}},  imm};
             SEW16: for (int i = 0; i < 8;  i++) vs1_eff.i16b[i] = {{11{imm[4]}}, imm};
             SEW32: for (int i = 0; i < 4;  i++) vs1_eff.i32b[i] = {{27{imm[4]}}, imm};
             SEW64: for (int i = 0; i < 2;  i++) vs1_eff.i64b[i] = {{59{imm[4]}}, imm};
@@ -79,32 +74,92 @@ always_comb begin
     end
 end
 
-// ---- Selección del resultado final ----
+// ---- Resultados del carril A (siempre presente) ----
+vector_t     addsub_result_a, logic_result_a, mult_result_a, div_result_a;
+logic [15:0] compare_result_a;
+vector_t     rd_data_a;
+
 always_comb begin
-    rd_data = '0;
-    if      (addsub_en)  rd_data = addsub_result;
-    else if (logic_en)   rd_data = logic_result;
-    else if (mult_en)    rd_data = mult_result;
-    else if (div_en)     rd_data = div_result;
-    else if (compare_en) begin
-        // resultado de comparación va a los bits bajos de vd (formato máscara)
-        rd_data.i128b = {112'b0, compare_result};
-    end
+    rd_data_a = '0;
+    if      (addsub_en)  rd_data_a = addsub_result_a;
+    else if (logic_en)   rd_data_a = logic_result_a;
+    else if (mult_en)    rd_data_a = mult_result_a;
+    else if (div_en)     rd_data_a = div_result_a;
+    else if (compare_en) rd_data_a.i128b = {112'b0, compare_result_a};
 end
 
+// ---- Generate: carriles B y C + voter (solo si TMR_ENABLE=1) ----
+generate
+    if (TMR_ENABLE) begin : tmr_block
+
+        // Resultados carriles B y C
+        vector_t     addsub_result_b, logic_result_b, mult_result_b, div_result_b;
+        logic [15:0] compare_result_b;
+        vector_t     rd_data_b;
+
+        vector_t     addsub_result_c, logic_result_c, mult_result_c, div_result_c;
+        logic [15:0] compare_result_c;
+        vector_t     rd_data_c;
+
+        always_comb begin
+            rd_data_b = '0;
+            if      (addsub_en)  rd_data_b = addsub_result_b;
+            else if (logic_en)   rd_data_b = logic_result_b;
+            else if (mult_en)    rd_data_b = mult_result_b;
+            else if (div_en)     rd_data_b = div_result_b;
+            else if (compare_en) rd_data_b.i128b = {112'b0, compare_result_b};
+        end
+
+        always_comb begin
+            rd_data_c = '0;
+            if      (addsub_en)  rd_data_c = addsub_result_c;
+            else if (logic_en)   rd_data_c = logic_result_c;
+            else if (mult_en)    rd_data_c = mult_result_c;
+            else if (div_en)     rd_data_c = div_result_c;
+            else if (compare_en) rd_data_c.i128b = {112'b0, compare_result_c};
+        end
+
+        // Carril B
+        vpu_addsub addsub_b (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(addsub_result_b));
+        vpu_logic  logic_b  (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(logic_result_b));
+        vpu_mult   mult_b   (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(mult_result_b));
+        vpu_div    div_b    (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(div_result_b));
+        vpu_compare compare_b (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(compare_result_b));
+
+        // Carril C
+        vpu_addsub addsub_c (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(addsub_result_c));
+        vpu_logic  logic_c  (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(logic_result_c));
+        vpu_mult   mult_c   (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(mult_result_c));
+        vpu_div    div_c    (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(div_result_c));
+        vpu_compare compare_c (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(compare_result_c));
+
+        // Voter sobre rd_data
+        voter #(.WIDTH(128)) voter_inst (
+            .a_i      (rd_data_a.i128b),
+            .b_i      (rd_data_b.i128b),
+            .c_i      (rd_data_c.i128b),
+            .result_o (rd_data.i128b),
+            .error_o  (tmr_error_o)
+        );
+
+    end
+    else begin : no_tmr_block
+
+        // Sin TMR: resultado directo del carril A
+        assign rd_data     = rd_data_a;
+        assign tmr_error_o = 1'b0;
+
+    end
+endgenerate
+
 // ---- Write enable del regfile ----
-// Para comparaciones siempre escribimos los 16 bits del resultado
 assign reg_we = valid_i & ~illegal_o & ~csr_we;
 
-// ---- CSR: decodificar vsetvl/vsetvli ----
-// En OPCFG: rs1 lleva AVL, rd lleva nueva vtype
-// vl = min(AVL, vlmax)
+// ---- CSR ----
 always_comb begin
     csr_we_int = valid_i & csr_we;
     csr_raddr  = 12'hC20;
-
     if (csr_we) begin
-        // Primero escribir vtype
         csr_addr = 12'hC21;
         csr_data = {20'b0, instr_i[31:20]};
     end
@@ -114,7 +169,7 @@ always_comb begin
     end
 end
 
-// ---- Instancias ----
+// ---- Instancias compartidas (decoder, regfile, csr, mask) ----
 
 vpu_decoder decoder (
     .instr_i      (instr_i),
@@ -171,45 +226,12 @@ vpu_csr csr (
     .vl_data_i (vl_data)
 );
 
-vpu_addsub addsub (
-    .vs1_i    (vs1_eff),
-    .vs2_i    (vs2_data),
-    .sew_i    (sew),
-    .op_i     (opi_op),
-    .result_o (addsub_result)
-);
-
-vpu_logic logic_unit (
-    .vs1_i    (vs1_eff),
-    .vs2_i    (vs2_data),
-    .sew_i    (sew),
-    .op_i     (opi_op),
-    .result_o (logic_result)
-);
-
-vpu_mult mult (
-    .vs1_i    (vs1_eff),
-    .vs2_i    (vs2_data),
-    .sew_i    (sew),
-    .op_i     (opm_op),
-    .result_o (mult_result)
-);
-
-vpu_div div (
-    .vs1_i    (vs1_eff),
-    .vs2_i    (vs2_data),
-    .sew_i    (sew),
-    .op_i     (opm_op),
-    .result_o (div_result)
-);
-
-vpu_compare compare (
-    .vs1_i    (vs1_eff),
-    .vs2_i    (vs2_data),
-    .sew_i    (sew),
-    .op_i     (opi_op),
-    .result_o (compare_result)
-);
+// ---- Carril A (siempre presente) ----
+vpu_addsub addsub_a (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(addsub_result_a));
+vpu_logic  logic_a  (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(logic_result_a));
+vpu_mult   mult_a   (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(mult_result_a));
+vpu_div    div_a    (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(div_result_a));
+vpu_compare compare_a (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(compare_result_a));
 
 vpu_mask mask (
     .v0_i  (v0_data),
@@ -226,7 +248,7 @@ always_ff @(posedge clk_i) begin
     end
     else begin
         done_o  <= valid_i & ~illegal_o;
-        stall_o <= 0; // single-cycle, nunca hay stall
+        stall_o <= 0;
     end
 end
 
