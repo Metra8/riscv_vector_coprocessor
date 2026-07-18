@@ -3,15 +3,21 @@ import vpu_pkg::*;
 
 module tb_vpu_top;
 
+// ---- Parámetros ----
+localparam TMR_ENABLE = 0;
+
 // ---- Señales ----
 logic        clk, rst;
 logic [31:0] instr;
 logic [31:0] rs1_data;
 logic        valid;
 logic        done, illegal, stall;
+logic        tmr_error; //tmr error
 
 // ---- DUT ----
-vpu_top dut (
+vpu_top #(
+    .TMR_ENABLE(TMR_ENABLE)
+) dut (
     .clk_i      (clk),
     .rst_i      (rst),
     .instr_i    (instr),
@@ -19,7 +25,8 @@ vpu_top dut (
     .valid_i    (valid),
     .done_o     (done),
     .illegal_o  (illegal),
-    .stall_o    (stall)
+    .stall_o    (stall),
+    .tmr_error_o(tmr_error)
 );
 
 // ---- Generador de reloj ----
