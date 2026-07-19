@@ -2,7 +2,9 @@
 import core_pkg::*;
 import vpu_pkg::*;
 
-module system_top (
+module system_top #(
+    parameter TMR_ENABLE = 0
+)(
     input  logic clk_i,
     input  logic rst_i,
     output logic tmr_error_o
@@ -46,7 +48,7 @@ dmem #(.DEPTH(1024)) dmem_inst (
     .rdata_o (dmem_rdata)
 );
 
-vpu_top #(.TMR_ENABLE(0)) vpu (  // ← sin TMR por defecto
+vpu_top #(.TMR_ENABLE(TMR_ENABLE)) vpu (  // ← sin TMR por defecto
     .clk_i       (clk_i),
     .rst_i       (rst_i),
     .instr_i     (vpu_instr),

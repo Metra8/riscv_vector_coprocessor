@@ -4,10 +4,12 @@ import vpu_pkg::*;
 module tb_system_basic;
 
 logic clk, rst;
+logic tmr_error;
 
 system_top dut (
     .clk_i (clk),
-    .rst_i (rst)
+    .rst_i (rst),
+    .tmr_error_o (tmr_error)
 );
 
 initial clk = 0;
