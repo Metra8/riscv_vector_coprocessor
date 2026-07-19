@@ -77,7 +77,8 @@ always_comb begin
             for (int i = 0; i < 8; i++) begin
                 temp_uu_16[i] = vs2_i.i16b[i] * vs1_i.i16b[i];
                 temp_ss_16[i] = signed'(vs2_i.i16b[i]) * signed'(vs1_i.i16b[i]);
-                temp_su_16[i] = signed'(vs2_i.i16b[i]) * vs1_i.i16b[i];
+                temp_su_16[i] = $signed({{16{vs2_i.i16b[i][15]}}, vs2_i.i16b[i]}) *
+                {16'b0, vs1_i.i16b[i]};
 
                 case (op_i)
                     OPM_VMUL:    result_o.i16b[i] = temp_uu_16[i][15:0];
@@ -93,7 +94,8 @@ always_comb begin
             for (int i = 0; i < 4; i++) begin
                 temp_uu_32[i] = vs2_i.i32b[i] * vs1_i.i32b[i];
                 temp_ss_32[i] = signed'(vs2_i.i32b[i]) * signed'(vs1_i.i32b[i]);
-                temp_su_32[i] = signed'(vs2_i.i32b[i]) * vs1_i.i32b[i];
+                temp_su_32[i] = $signed({{32{vs2_i.i32b[i][31]}}, vs2_i.i32b[i]}) *
+                {32'b0, vs1_i.i32b[i]};
 
                 case (op_i)
                     OPM_VMUL:    result_o.i32b[i] = temp_uu_32[i][31:0];
@@ -109,7 +111,8 @@ always_comb begin
             for (int i = 0; i < 2; i++) begin
                 temp_uu_64[i] = vs2_i.i64b[i] * vs1_i.i64b[i];
                 temp_ss_64[i] = signed'(vs2_i.i64b[i]) * signed'(vs1_i.i64b[i]);
-                temp_su_64[i] = signed'(vs2_i.i64b[i]) * vs1_i.i64b[i];
+                temp_su_64[i] = $signed({{64{vs2_i.i64b[i][63]}}, vs2_i.i64b[i]}) *
+                {64'b0, vs1_i.i64b[i]};
 
                 case (op_i)
                     OPM_VMUL:    result_o.i64b[i] = temp_uu_64[i][63:0];
