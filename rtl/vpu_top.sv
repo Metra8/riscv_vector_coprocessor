@@ -247,7 +247,7 @@ always_ff @(posedge clk_i) begin
         stall_o <= 0;
     end
     else begin
-        done_o  <= valid_i & ~illegal_o;
+        done_o  <= valid_i;
         stall_o <= 0;
     end
 end
