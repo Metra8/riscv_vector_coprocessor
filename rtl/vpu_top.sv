@@ -2,7 +2,8 @@
 import vpu_pkg::*;
 
 module vpu_top #(
-    parameter TMR_ENABLE = 0  // 0 = sin TMR, 1 = con TMR (3 carriles)
+    parameter TMR_ENABLE = 0,  // 0 = sin TMR, 1 = con TMR (3 carriles)
+    parameter DIV_ENABLE = 1   // 0 = sin división (síntesis), 1 = con división (simulación)
 )(
     input  logic        clk_i,
     input  logic        rst_i,
@@ -14,7 +15,7 @@ module vpu_top #(
     output logic        done_o,
     output logic        illegal_o,
     output logic        stall_o,
-    output logic        tmr_error_o  // 0 siempre si TMR_ENABLE=0
+    output logic        tmr_error_o
 );
 
 // ---- Señales del decoder ----
@@ -74,7 +75,7 @@ always_comb begin
     end
 end
 
-// ---- Resultados del carril A (siempre presente) ----
+// ---- Resultados del carril A ----
 vector_t     addsub_result_a, logic_result_a, mult_result_a, div_result_a;
 logic [15:0] compare_result_a;
 vector_t     rd_data_a;
@@ -88,7 +89,18 @@ always_comb begin
     else if (compare_en) rd_data_a.i128b = {112'b0, compare_result_a};
 end
 
-// ---- Generate: carriles B y C + voter (solo si TMR_ENABLE=1) ----
+// ---- Generate DIV carril A ----
+generate
+    if (DIV_ENABLE) begin : div_a_block
+        vpu_div div_a (.vs1_i(vs1_eff), .vs2_i(vs2_data),
+                       .sew_i(sew), .op_i(opm_op), .result_o(div_result_a));
+    end
+    else begin : no_div_a_block
+        assign div_result_a = '0;
+    end
+endgenerate
+
+// ---- Generate TMR ----
 generate
     if (TMR_ENABLE) begin : tmr_block
 
@@ -119,19 +131,29 @@ generate
             else if (compare_en) rd_data_c.i128b = {112'b0, compare_result_c};
         end
 
-        // Carril B
-        vpu_addsub addsub_b (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(addsub_result_b));
-        vpu_logic  logic_b  (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(logic_result_b));
-        vpu_mult   mult_b   (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(mult_result_b));
-        vpu_div    div_b    (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(div_result_b));
-        vpu_compare compare_b (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(compare_result_b));
+        // Carril B (sin div)
+        (* dont_touch = "true" *) vpu_addsub addsub_b (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(addsub_result_b));
+        (* dont_touch = "true" *) vpu_logic  logic_b  (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(logic_result_b));
+        (* dont_touch = "true" *) vpu_mult   mult_b   (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(mult_result_b));
+        (* dont_touch = "true" *) vpu_compare compare_b (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(compare_result_b));
 
-        // Carril C
+        // Carril C (sin div)
         vpu_addsub addsub_c (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(addsub_result_c));
         vpu_logic  logic_c  (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(logic_result_c));
         vpu_mult   mult_c   (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(mult_result_c));
-        vpu_div    div_c    (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(div_result_c));
         vpu_compare compare_c (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(compare_result_c));
+
+        // DIV en carriles B y C condicionado por DIV_ENABLE
+        if (DIV_ENABLE) begin : div_bc_block
+            vpu_div div_b (.vs1_i(vs1_eff), .vs2_i(vs2_data),
+                           .sew_i(sew), .op_i(opm_op), .result_o(div_result_b));
+            vpu_div div_c (.vs1_i(vs1_eff), .vs2_i(vs2_data),
+                           .sew_i(sew), .op_i(opm_op), .result_o(div_result_c));
+        end
+        else begin : no_div_bc_block
+            assign div_result_b = '0;
+            assign div_result_c = '0;
+        end
 
         // Voter sobre rd_data
         voter #(.WIDTH(128)) voter_inst (
@@ -144,11 +166,8 @@ generate
 
     end
     else begin : no_tmr_block
-
-        // Sin TMR: resultado directo del carril A
         assign rd_data     = rd_data_a;
         assign tmr_error_o = 1'b0;
-
     end
 endgenerate
 
@@ -169,8 +188,7 @@ always_comb begin
     end
 end
 
-// ---- Instancias compartidas (decoder, regfile, csr, mask) ----
-
+// ---- Instancias compartidas ----
 vpu_decoder decoder (
     .instr_i      (instr_i),
     .vs1_addr_o   (vs1_addr),
@@ -226,11 +244,10 @@ vpu_csr csr (
     .vl_data_i (vl_data)
 );
 
-// ---- Carril A (siempre presente) ----
+// ---- Carril A (siempre presente, sin div que va en generate) ----
 vpu_addsub addsub_a (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(addsub_result_a));
 vpu_logic  logic_a  (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(logic_result_a));
 vpu_mult   mult_a   (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(mult_result_a));
-vpu_div    div_a    (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opm_op), .result_o(div_result_a));
 vpu_compare compare_a (.vs1_i(vs1_eff), .vs2_i(vs2_data), .sew_i(sew), .op_i(opi_op), .result_o(compare_result_a));
 
 vpu_mask mask (
