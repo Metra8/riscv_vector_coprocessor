@@ -7,6 +7,7 @@ module system_top #(
 )(
     input  logic clk_i,
     input  logic rst_i,
+    output logic [31:0] core_probe_o,
     output logic tmr_error_o
 );
 
@@ -17,7 +18,7 @@ logic [3:0]  dmem_be;
 logic [31:0] vpu_instr, vpu_rs1;
 logic        vpu_valid, vpu_done, vpu_illegal;
 
-core_top core (
+(* keep_hierarchy = "yes" *) core_top core (
     .clk_i          (clk_i),
     .rst_i          (rst_i),
     .imem_addr_o    (imem_addr),
@@ -34,12 +35,12 @@ core_top core (
     .vpu_illegal_i  (vpu_illegal)
 );
 
-imem #(.DEPTH(1024), .MEM_FILE("program.hex")) imem_inst (
+(* keep_hierarchy = "yes" *) imem #(.DEPTH(1024), .MEM_FILE("program.hex")) imem_inst (
     .addr_i (imem_addr),
     .data_o (imem_data)
 );
 
-dmem #(.DEPTH(1024)) dmem_inst (
+(* keep_hierarchy = "yes" *) dmem #(.DEPTH(1024)) dmem_inst (
     .clk_i   (clk_i),
     .addr_i  (dmem_addr),
     .wdata_i (dmem_wdata),
@@ -48,7 +49,7 @@ dmem #(.DEPTH(1024)) dmem_inst (
     .rdata_o (dmem_rdata)
 );
 
-vpu_top #(.TMR_ENABLE(TMR_ENABLE)) vpu (  // ← sin TMR por defecto
+(* keep_hierarchy = "yes" *) vpu_top #(.TMR_ENABLE(TMR_ENABLE), .DIV_ENABLE(0)) vpu (  // ← sin TMR por defecto
     .clk_i       (clk_i),
     .rst_i       (rst_i),
     .instr_i     (vpu_instr),
@@ -59,5 +60,7 @@ vpu_top #(.TMR_ENABLE(TMR_ENABLE)) vpu (  // ← sin TMR por defecto
     .stall_o     (),              // ← coma añadida
     .tmr_error_o (tmr_error_o)
 );
+
+assign core_probe_o = dmem_wdata ^ vpu_instr;
 
 endmodule
